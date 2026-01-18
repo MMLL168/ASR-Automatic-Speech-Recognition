@@ -148,13 +148,13 @@
             
             <!-- Header Section -->
             <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
-                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v1.3</div>
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v1.4</div>
                 <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
                     基於 ESP32-S3 之離線語音識別產品：<br>
                     <span class="text-tech-600 dark:text-tech-400">從研發到量產的深度技術報告</span>
                 </h1>
                 <p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                    本報告詳述了基於 Espressif ESP32-S3、INMP441、MAX98357A 與 OLED 構建的高性能離線語音交互系統。涵蓋硬體選型、PCB Layout、聲學設計、<span class="text-purple-500 font-semibold">數據採集原理</span>及 Edge Impulse 訓練指南。
+                    本報告詳述了基於 Espressif ESP32-S3、INMP441、MAX98357A 與 OLED 構建的高性能離線語音交互系統。涵蓋硬體選型、PCB Layout、聲學設計、數據採集原理及 <span class="text-blue-500 font-semibold">Edge Impulse 深度訓練指南</span>。
                 </p>
             </header>
 
@@ -762,160 +762,199 @@
                 </div>
             </section>
 
-            <!-- 11. Edge Impulse Training Guide (Renumbered) -->
+            <!-- 11. Edge Impulse Training Deep Dive (Revamped) -->
             <section id="edge-impulse" class="mb-16 scroll-mt-24">
                 <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
                     <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">11</span>
-                    Edge Impulse 完整訓練指南
+                    Edge Impulse 模型訓練與優化詳解
                 </h2>
-                <!-- ... 內容保持不變，僅序號變更 ... -->
+                
                 <div class="mb-8">
-                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
-                        <i class="fas fa-tasks text-blue-500 mr-2"></i> 準備工作 (Checklist)
+                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        本章節將深入探討如何設計高效的語音辨識 Impulse、分析訓練結果並進行優化。請確保您已完成第 10 章的數據採集工作。
+                    </p>
+                </div>
+
+                <!-- 11.1 Data Preprocessing -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-scissors text-blue-500 mr-2"></i> 1. 數據預處理 (Data Splitting)
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white dark:bg-slate-900 p-4 rounded-lg border border-gray-200 dark:border-slate-800">
-                            <h4 class="font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase">硬體清單</h4>
-                            <ul class="space-y-2 text-sm text-gray-700 dark:text-slate-300">
-                                <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i> ESP32-S3-N16R8 開發板</li>
-                                <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i> INMP441 I2S 麥克風</li>
-                                <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i> USB 數據線</li>
-                                <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i> 麥克風接線 (已驗證)</li>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        機器學習的黃金法則：<strong>80/20 分割</strong>。80% 用於教學 (Training)，20% 用於考試 (Testing)。
+                    </p>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1 bg-slate-50 dark:bg-slate-800 p-4 rounded">
+                            <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">自動分割步驟</h4>
+                            <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                <li>進入 <strong>Data acquisition</strong> 頁面。</li>
+                                <li>點擊左下角的 "Tools" 按鈕。</li>
+                                <li>選擇 <strong>"Perform train / test split"</strong>。</li>
+                                <li>系統會自動重新分配所有樣本。</li>
+                            </ol>
+                        </div>
+                        <div class="flex-1 bg-blue-50 dark:bg-blue-900/20 p-4 rounded border border-blue-100 dark:border-blue-900">
+                            <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2">理想分佈</h4>
+                            <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                                <li><strong>Training:</strong> > 240 樣本 (每類 50+)</li>
+                                <li><strong>Testing:</strong> > 60 樣本 (每類 15+)</li>
+                                <li><strong>多樣性:</strong> 確保兩邊都包含不同人的聲音。</li>
                             </ul>
                         </div>
-                        <div class="bg-white dark:bg-slate-900 p-4 rounded-lg border border-gray-200 dark:border-slate-800">
-                            <h4 class="font-bold text-sm mb-2 text-slate-600 dark:text-slate-400 uppercase">建議命令詞</h4>
-                            <div class="flex flex-wrap gap-2 text-xs font-mono">
-                                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">ON</span>
-                                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">OFF</span>
-                                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">START</span>
-                                <span class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-1 rounded">NOISE (必備)</span>
-                                <span class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-1 rounded">SILENCE (必備)</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Workflow Steps -->
-                <div class="space-y-8">
-                    <!-- Step 1: Setup (Modified slightly to refer back to section 10) -->
-                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 relative">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-bold text-gray-300 dark:text-gray-700 select-none">1</div>
-                        <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">帳戶與連接</h4>
-                        <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700 dark:text-slate-300">
-                            <li>訪問 <a href="https://www.edgeimpulse.com" target="_blank" class="text-blue-500 hover:underline">Edge Impulse</a> 並註冊。</li>
-                            <li>點擊 "Create new project"，命名為 "ESP32-Voice"。</li>
-                            <li><strong>連接設備：</strong> 請參考 <a href="#acquisition-deep-dive" class="text-purple-500 font-bold hover:underline">第 10 章</a> 完成 CLI 連接。</li>
-                        </ol>
-                    </div>
-
-                    <!-- Step 2: Data Collection -->
-                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 relative">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-bold text-gray-300 dark:text-gray-700 select-none">2</div>
-                        <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">語音資料蒐集 (Data Acquisition)</h4>
-                        
-                        <div class="mb-4">
-                            <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded font-bold mr-2">目標</span>
-                            <span class="text-sm text-gray-600 dark:text-slate-400">每個命令詞 50 個樣本 (50秒) + 雜音 50 個樣本。</span>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
-                                <h5 class="font-bold text-sm mb-2 text-blue-600 dark:text-blue-400">方法 A: Web 錄音 (已連接 CLI)</h5>
-                                <ol class="list-decimal list-inside text-sm text-gray-700 dark:text-slate-300 space-y-1">
-                                    <li>進入 "Data acquisition" 頁面。</li>
-                                    <li>Label 輸入 "ON"。</li>
-                                    <li>Sample length 設為 1000ms (1s)。</li>
-                                    <li>點擊 "Start sampling" 並對著 ESP32 說話。</li>
-                                </ol>
-                            </div>
-                            <div class="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
-                                <h5 class="font-bold text-sm mb-2 text-purple-600 dark:text-purple-400">方法 B: 上傳 WAV</h5>
-                                <ul class="list-disc list-inside text-sm text-gray-700 dark:text-slate-300 space-y-1">
-                                    <li>使用手機/電腦錄製 WAV 檔。</li>
-                                    <li>格式要求: 16kHz, 16-bit, Mono。</li>
-                                    <li>使用 "Upload existing data" 批量上傳。</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Impulse Design -->
-                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 relative">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-bold text-gray-300 dark:text-gray-700 select-none">3</div>
-                        <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">特徵提取與模型訓練</h4>
-                        
-                        <div class="overflow-x-auto mb-6">
-                            <table class="min-w-full text-sm border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 dark:bg-slate-800">
-                                        <th class="p-2 border border-gray-300 dark:border-slate-700">區塊 (Block)</th>
-                                        <th class="p-2 border border-gray-300 dark:border-slate-700">關鍵參數設置</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-semibold">Time Series</td>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-mono text-xs">Window: 1000ms, Increase: 500ms</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-semibold">Processing (MFCC)</td>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-mono text-xs">13 Coefficients, 300-8000Hz</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-semibold">Learning (Keras)</td>
-                                        <td class="p-2 border border-gray-300 dark:border-slate-700 font-mono text-xs">Epochs: 100, Learning Rate: 0.005, <br>Data Augmentation: ENABLED</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Deployment -->
-                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 relative">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-bold text-gray-300 dark:text-gray-700 select-none">4</div>
-                        <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">模型部署 (Deployment)</h4>
-                        <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700 dark:text-slate-300">
-                            <li>進入 "Deployment" 頁面。</li>
-                            <li>選擇 <strong>Arduino Library</strong>。</li>
-                            <li>優化選項選擇 <strong>Quantized (INT8)</strong> (體積小 75%，適合 ESP32)。</li>
-                            <li>點擊 "Build" 下載 ZIP 檔。</li>
-                            <li>此 ZIP 檔包含最終的<strong>「推理代碼」</strong>，請與第 10 章的採集代碼區分開。</li>
-                        </ol>
-                    </div>
-                </div>
-
-                <!-- 11.3 FAQ Integration -->
-                <div class="mt-8">
-                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
-                        <i class="fas fa-question-circle text-orange-500 mr-2"></i> Edge Impulse 常見問題
+                <!-- 11.2 Impulse Design -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-layer-group text-purple-500 mr-2"></i> 2. 模型設計 (Create Impulse)
                     </h3>
-                    <div class="space-y-4">
-                        <details class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg group">
-                            <summary class="cursor-pointer p-4 font-semibold text-slate-800 dark:text-slate-200 group-open:text-tech-600 dark:group-open:text-tech-400 flex justify-between items-center">
-                                Q: 採集代碼和推理代碼有什麼區別？
-                                <i class="fas fa-chevron-down transform group-open:rotate-180 transition-transform"></i>
-                            </summary>
-                            <div class="p-4 pt-0 text-sm text-gray-600 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 mt-2">
-                                <strong>採集代碼</strong> (Phase 1) 是一段臨時用的 Arduino 代碼，負責將麥克風數據傳給電腦CLI。用完即棄。<br>
-                                <strong>推理代碼</strong> (Phase 2) 是 Edge Impulse 生成的最終 Library，包含訓練好的 AI 模型，可完全離線運行。
-                            </div>
-                        </details>
-
-                        <details class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg group">
-                            <summary class="cursor-pointer p-4 font-semibold text-slate-800 dark:text-slate-200 group-open:text-tech-600 dark:group-open:text-tech-400 flex justify-between items-center">
-                                Q: ESP32 連接不到 Edge Impulse？
-                                <i class="fas fa-chevron-down transform group-open:rotate-180 transition-transform"></i>
-                            </summary>
-                            <div class="p-4 pt-0 text-sm text-gray-600 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 mt-2">
-                                1. 檢查 USB 線是否具備數據傳輸功能。<br>
-                                2. 確認已上傳正確的 <strong>採集代碼</strong> (見第 10 章)。<br>
-                                3. 確保 Serial Monitor 已關閉 (會佔用 COM Port)。<br>
-                                4. 重新執行 <code>edge-impulse-daemon</code>。
-                            </div>
-                        </details>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                        Impulse 是數據處理的流水線。針對語音辨識，請嚴格按照以下參數配置：
+                    </p>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-slate-800">
+                                    <th class="p-3 border border-gray-300 dark:border-slate-700 text-left">區塊 (Block)</th>
+                                    <th class="p-3 border border-gray-300 dark:border-slate-700 text-left">推薦設置</th>
+                                    <th class="p-3 border border-gray-300 dark:border-slate-700 text-left">說明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200">
+                                        <i class="fas fa-clock mr-2 text-gray-400"></i>Time Series
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-mono text-xs text-blue-600 dark:text-blue-400">
+                                        Window size: 1000ms<br>
+                                        Window increase: 500ms
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-400">
+                                        每次分析 1 秒聲音，每 0.5 秒移動一次窗口 (50% 重疊)。
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200">
+                                        <i class="fas fa-wave-square mr-2 text-gray-400"></i>Processing (MFCC)
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-mono text-xs text-blue-600 dark:text-blue-400">
+                                        Coefficients: 13<br>
+                                        Frequency: 300-8000Hz
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-400">
+                                        提取人類語音特徵。300Hz以下通常是電源雜訊，8kHz是人聲上限。
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200">
+                                        <i class="fas fa-brain mr-2 text-gray-400"></i>Learning (Keras)
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 font-mono text-xs text-blue-600 dark:text-blue-400">
+                                        Architecture: 1D Conv / Dense<br>
+                                        Epochs: 100
+                                    </td>
+                                    <td class="p-3 border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-400">
+                                        負責分類的神經網絡。訓練週期設為 100 以確保充分收斂。
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
+                <!-- 11.3 Feature Generation -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-chart-scatter text-orange-500 mr-2"></i> 3. 特徵提取 (Generate Features)
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        點擊 "Generate features" 後，觀察 <strong>Feature Explorer</strong> 圖表是判斷數據質量的關鍵。
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/10 p-4 rounded">
+                            <h4 class="font-bold text-green-800 dark:text-green-300 mb-2">✅ 良好的特徵分佈</h4>
+                            <p class="text-sm text-green-700 dark:text-green-200">
+                                不同顏色的點聚集成明顯分離的群組 (Clusters)。<br>
+                                例如：紅色 "ON" 在左邊，藍色 "OFF" 在右邊，沒有重疊。這代表模型能輕易區分它們。
+                            </p>
+                        </div>
+                        <div class="border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/10 p-4 rounded">
+                            <h4 class="font-bold text-red-800 dark:text-red-300 mb-2">❌ 糟糕的特徵分佈</h4>
+                            <p class="text-sm text-red-700 dark:text-red-200">
+                                不同顏色的點混雜在一起，難以區分邊界。<br>
+                                <strong>解法：</strong>檢查錄音品質、增加更多樣本，或調整 MFCC 參數。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 11.4 Training & Evaluation -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-graduation-cap text-green-500 mr-2"></i> 4. 訓練與評估 (Train & Evaluate)
+                    </h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">訓練監控指標</h4>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded text-center">
+                                <span class="block text-xs text-gray-500 uppercase">Target Accuracy</span>
+                                <span class="text-2xl font-bold text-green-600">> 90%</span>
+                            </div>
+                            <div class="flex-1 bg-slate-100 dark:bg-slate-800 p-3 rounded text-center">
+                                <span class="block text-xs text-gray-500 uppercase">Target Loss</span>
+                                <span class="text-2xl font-bold text-blue-600">< 0.30</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">混淆矩陣 (Confusion Matrix) 解讀</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            訓練完成後，你會看到一張表格。<strong>對角線上的數字</strong>代表正確預測的數量。
+                        </p>
+                        <div class="bg-slate-50 dark:bg-black p-4 rounded font-mono text-xs overflow-x-auto border border-slate-200 dark:border-slate-700">
+                            <pre class="text-slate-600 dark:text-slate-400">
+        PREDICTED
+        ON    OFF   NOISE
+ACTUAL
+ON      <span class="text-green-600 font-bold">48</span>    1     1     <- 48個正確，2個錯誤
+OFF     0     <span class="text-green-600 font-bold">49</span>    1     <- 49個正確
+NOISE   0     0     <span class="text-green-600 font-bold">50</span>    <- 完美！
+                            </pre>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">過度擬合 (Overfitting) 檢查</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            比較 <strong>Training Accuracy</strong> 與 <strong>Validation Accuracy</strong> (或 Test Accuracy)。
+                        </p>
+                        <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 mt-2 ml-2">
+                            <li><span class="text-green-600 font-bold">良好：</span>兩者差異 < 5% (例如 96% vs 94%)。</li>
+                            <li><span class="text-red-600 font-bold">過擬合：</span>訓練 99% 但測試只有 70%。代表模型死背了答案。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 11.5 Optimization -->
+                <div class="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                    <h3 class="text-xl font-bold text-blue-800 dark:text-blue-300 mb-4">
+                        <i class="fas fa-magic mr-2"></i> 5. 終極優化：數據增強 (Data Augmentation)
+                    </h3>
+                    <p class="text-sm text-blue-700 dark:text-blue-200 mb-4">
+                        如果模型在安靜環境表現良好，但在實際環境（有背景音）表現不佳，請開啟此功能。
+                    </p>
+                    <ol class="list-decimal list-inside text-sm text-blue-700 dark:text-blue-200 space-y-2">
+                        <li>在訓練頁面 (Neural Network settings) 中找到 <strong>Data augmentation</strong>。</li>
+                        <li>勾選 <strong>"Add noise"</strong> (加入噪聲)。</li>
+                        <li>勾選 <strong>"Mask time bands"</strong> (模擬聲音中斷)。</li>
+                        <li>重新訓練模型。這會讓模型「看過」更多變種的數據，顯著提升抗噪能力。</li>
+                    </ol>
+                </div>
+
             </section>
 
             <!-- Footer -->
