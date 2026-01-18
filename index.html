@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="基於 ESP32-S3 之離線語音識別產品深度技術報告 - Marlon's Engineering Log">
+    <title>ESP32-S3 離線語音識別 | 研發技術報告</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // 啟用 class 模式的手動切換
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        tech: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .code-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-slate-300 antialiased font-sans flex h-screen overflow-hidden transition-colors duration-300">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed w-full bg-slate-900 text-white z-50 flex justify-between items-center p-4 shadow-md border-b border-slate-700">
+        <span class="font-bold text-lg"><i class="fas fa-microchip mr-2"></i>ESP32-S3 Voice</span>
+        <div class="flex items-center space-x-4">
+            <button id="mobile-theme-toggle" class="text-slate-300 hover:text-white focus:outline-none">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button id="mobile-menu-btn" class="text-white focus:outline-none">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="transform -translate-x-full md:translate-x-0 transition-transform duration-300 fixed md:static inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 flex flex-col z-40 h-full border-r border-slate-800 shrink-0 shadow-xl md:shadow-none">
+        <div class="p-6 border-b border-slate-700">
+            <h1 class="text-xl font-bold text-white tracking-wide"><i class="fas fa-microchip text-tech-500 mr-2"></i>Project: Echo</h1>
+            <p class="text-xs mt-2 text-slate-400">Offline Speech Recognition</p>
+            <div class="mt-4 flex items-center space-x-2">
+                <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-mono text-green-400">STATUS: PROTOTYPE</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+            <a href="#summary" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-home w-6 text-center"></i> 執行摘要與背景</a>
+            <a href="#hardware" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-memory w-6 text-center"></i> 核心硬體架構</a>
+            <a href="#schematic" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-bezier-curve w-6 text-center"></i> 電路與 PCB 設計</a>
+            <a href="#acoustic" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-volume-up w-6 text-center"></i> 聲學結構工程</a>
+            <a href="#software" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-code w-6 text-center"></i> 軟體與演算法</a>
+            <a href="#power" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-battery-half w-6 text-center"></i> 電源管理</a>
+            <a href="#production" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium"><i class="fas fa-industry w-6 text-center"></i> 量產與測試 (DFT)</a>
+            <a href="#terminology" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-yellow-400"><i class="fas fa-book w-6 text-center"></i> 術語速查表 (Cheat Sheet)</a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-tech-600 flex items-center justify-center text-white font-bold text-xs">M</div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-white">Marlon</p>
+                        <p class="text-xs text-slate-500">Engineer</p>
+                    </div>
+                </div>
+                <!-- Desktop Theme Toggle -->
+                <button id="desktop-theme-toggle" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-yellow-400 transition-colors focus:outline-none" title="Toggle Dark Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 h-full overflow-y-auto pt-16 md:pt-0 scroll-smooth bg-gray-50 dark:bg-slate-950">
+        <div class="max-w-5xl mx-auto px-6 py-10 md:py-16">
+            
+            <!-- Header Section -->
+            <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v1.0</div>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
+                    基於 ESP32-S3 之離線語音識別產品：<br>
+                    <span class="text-tech-600 dark:text-tech-400">從研發到量產的深度技術報告</span>
+                </h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                    本報告詳述了基於 Espressif ESP32-S3、INMP441、MAX98357A 與 OLED 構建的高性能離線語音交互系統。涵蓋硬體選型、PCB Layout 指南、聲學結構設計至量產測試全流程。
+                </p>
+            </header>
+
+            <!-- 1. Summary -->
+            <section id="summary" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">1</span>
+                    執行摘要與市場背景分析
+                </h2>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 transition-colors">
+                    <p class="mb-4 text-gray-700 dark:text-slate-300 leading-7">
+                        在物聯網（IoT）與人工智慧（AI）技術融合的浪潮下，語音交互正迅速成為人機介面（HMI）的主流。鑑於雲端方案的延遲與隱私問題，<strong>邊緣端（Edge）離線語音識別</strong>已成為智慧家居與工業控制的關鍵技術。
+                    </p>
+                    <div class="border-l-4 border-tech-500 pl-4 py-2 bg-tech-50 dark:bg-slate-800/50">
+                        <p class="font-medium text-tech-900 dark:text-tech-100">核心優勢：</p>
+                        <ul class="list-disc list-inside text-gray-700 dark:text-slate-300 mt-2 space-y-1">
+                            <li><strong>低延遲</strong>：本地推論，即時響應。</li>
+                            <li><strong>高隱私</strong>：語音數據不上雲。</li>
+                            <li><strong>低成本</strong>：無需持續的雲端 API 費用。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Hardware -->
+            <section id="hardware" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">2</span>
+                    核心硬體架構深度分析
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Card 1: ESP32-S3 -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 mr-3">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">ESP32-S3 SoC</h3>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-slate-400">
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">核心：</span> Xtensa® LX7 雙核 @ 240MHz</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">加速：</span> 向量指令集 (Vector Instructions) 加速 AI 卷積運算</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">記憶體：</span> 8MB Octal PSRAM (支援高精度 WakeNet 模型)</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">I/O：</span> 獨立雙 I2S 介面 (全雙工)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2: INMP441 -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mr-3">
+                                <i class="fas fa-microphone-lines"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">INMP441 MEMS Mic</h3>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-slate-400">
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">類型：</span> 全向性數位 MEMS</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">介面：</span> 標準 I2S (內建 24-bit ADC)</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">抗干擾：</span> 高 PSRR，抗 RF 干擾能力強</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">SNR：</span> 61 dBA，適合遠場拾音</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3: MAX98357A -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 mr-3">
+                                <i class="fas fa-volume-high"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">MAX98357A Amp</h3>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-slate-400">
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">架構：</span> Filterless Class-D (省去 LC 濾波)</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">功率：</span> 3.2W (4Ω, 5V)</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">效率：</span> 92%，無需散熱片</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 4: OLED -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3">
+                                <i class="fas fa-tv"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">OLED Display</h3>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-600 dark:text-slate-400">
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">控制器：</span> SSD1306 / SH1106</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">功能：</span> 狀態回饋 (聆聽中/識別成功)</li>
+                            <li><span class="font-semibold text-gray-800 dark:text-slate-200">介面：</span> I2C (節省 GPIO)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Schematic & PCB -->
+            <section id="schematic" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">3</span>
+                    電路原理與 PCB 佈局指南
+                </h2>
+
+                <!-- Pinout Table -->
+                <div class="overflow-x-auto mb-8 rounded-lg border border-gray-200 dark:border-slate-800">
+                    <h3 class="font-bold text-lg mb-4 text-slate-700 dark:text-slate-200 px-1">推薦引腳分配表 (ESP32-S3-WROOM-1)</h3>
+                    <table class="min-w-full bg-white dark:bg-slate-900">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-3 text-left">功能單元</th>
+                                <th class="px-6 py-3 text-left">訊號名稱</th>
+                                <th class="px-6 py-3 text-left">GPIO</th>
+                                <th class="px-6 py-3 text-left">備註 (PCB Layout 重點)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-slate-800 text-sm">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800">
+                                <td class="px-6 py-4 font-medium text-blue-600 dark:text-blue-400">I2S0 (MIC)</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">BCLK / WS / DIN</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">IO41 / IO42 / IO2</td>
+                                <td class="px-6 py-4 text-slate-600 dark:text-slate-400">BCLK/WS 串聯 33Ω 電阻減少鈴振</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800">
+                                <td class="px-6 py-4 font-medium text-purple-600 dark:text-purple-400">I2S1 (AMP)</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">BCLK / LRCK / DOUT</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">IO15 / IO16 / IO7</td>
+                                <td class="px-6 py-4 text-slate-600 dark:text-slate-400">建議與 MIC 分開 I2S 控制器以避免衝突</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800">
+                                <td class="px-6 py-4 font-medium text-orange-600 dark:text-orange-400">I2C (OLED)</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">SDA / SCL</td>
+                                <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">IO8 / IO9</td>
+                                <td class="px-6 py-4 text-slate-600 dark:text-slate-400">需外部 2.2kΩ 上拉電阻</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Design Rules -->
+                <div class="space-y-4">
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4">
+                        <h4 class="font-bold text-yellow-800 dark:text-yellow-200 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>PCB 關鍵準則</h4>
+                        <ul class="list-disc list-inside text-sm text-yellow-800 dark:text-yellow-100/80 space-y-1">
+                            <li><strong>電源樹 (Power Tree)：</strong> MAX98357A 建議使用 5V (VBUS) 供電以保證功率。INMP441 需透過 LC 濾波器隔離數位雜訊。</li>
+                            <li><strong>星型接地 (Star Grounding)：</strong> 類比地與功率地應在電源入口單點連接，避免數位迴路干擾。</li>
+                            <li><strong>天線淨空區：</strong> ESP32-S3 天線周圍 15mm 嚴禁鋪銅，麥克風應遠離天線以防 TDMA 噪音 (217Hz)。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Acoustics -->
+            <section id="acoustic" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">4</span>
+                    聲學結構工程設計
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-lg border border-gray-200 dark:border-slate-800">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-2">1. 氣密性設計</h3>
+                        <p class="text-sm text-gray-600 dark:text-slate-400">
+                            使用橡膠或 PORON® 泡棉墊圈將 INMP441 緊密壓合外殼。防止「聲短路」導致 AEC 演算法失效。
+                        </p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-lg border border-gray-200 dark:border-slate-800">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-2">2. 獨立後腔</h3>
+                        <p class="text-sm text-gray-600 dark:text-slate-400">
+                            揚聲器必須擁有獨立密封後腔 (Back Volume)，實現與麥克風的物理隔離並提升低頻。
+                        </p>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-lg border border-gray-200 dark:border-slate-800">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-200 mb-2">3. 減震安裝</h3>
+                        <p class="text-sm text-gray-600 dark:text-slate-400">
+                            使用軟性矽膠懸浮固定揚聲器，切斷震動通過外殼傳導至麥克風的路徑。
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Software -->
+            <section id="software" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">5</span>
+                    軟體架構與 AI 演算法流程
+                </h2>
+                
+                <div class="bg-slate-900 dark:bg-black text-white p-6 rounded-lg mb-6 overflow-x-auto shadow-inner">
+                    <p class="font-mono text-sm text-green-400 mb-2">// Audio Pipeline Data Flow</p>
+                    <div class="flex items-center space-x-2 text-sm font-mono whitespace-nowrap">
+                        <span class="bg-slate-700 px-3 py-1 rounded border border-slate-600">[INMP441]</span>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <span class="bg-slate-700 px-3 py-1 rounded border border-slate-600">I2S DMA</span>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <span class="bg-slate-700 px-3 py-1 rounded border border-slate-600">Ring Buffer</span>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <span class="bg-blue-600/80 px-3 py-1 rounded border border-blue-400">AFE (AEC/NS/VAD)</span>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <span class="bg-purple-600/80 px-3 py-1 rounded border border-purple-400">WakeNet/MultiNet</span>
+                        <i class="fas fa-arrow-right text-gray-500"></i>
+                        <span class="bg-slate-700 px-3 py-1 rounded border border-slate-600">App Logic</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-gray-700 dark:text-slate-300 leading-relaxed">
+                    <p>
+                        <strong class="text-slate-900 dark:text-slate-100">核心技術棧：</strong> ESP-IDF + ESP-SR。
+                    </p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>I2S 優化：</strong> DMA Buffer 建議設定 <code>count=8, len=512</code> 以平衡延遲與抗抖動。</li>
+                        <li><strong>AEC (迴聲消除)：</strong> 必須將播放給 Amplifier 的數據 "Loopback" 給 AFE 作為參考訊號。</li>
+                        <li><strong>WakeNet (喚醒)：</strong> 使用量化模型 (Quantized) 降低記憶體佔用。</li>
+                        <li><strong>LVGL GUI：</strong> 顯示任務優先級必須低於音訊任務，並使用雙緩衝區 (Double Buffering) 避免阻塞。</li>
+                    </ul>
+                </div>
+            </section>
+
+             <!-- 6. Power -->
+             <section id="power" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">6</span>
+                    電源管理
+                </h2>
+                <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h3 class="font-bold text-lg text-slate-700 dark:text-slate-200">功耗分析</h3>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="p-4 bg-gray-50 dark:bg-slate-800 rounded">
+                            <p class="text-xs text-gray-500 dark:text-slate-400 uppercase">Active Listening</p>
+                            <p class="text-xl font-bold text-slate-800 dark:text-slate-100">100 - 150 mA</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 dark:bg-slate-800 rounded">
+                            <p class="text-xs text-gray-500 dark:text-slate-400 uppercase">Playback (Peak)</p>
+                            <p class="text-xl font-bold text-slate-800 dark:text-slate-100">> 500 mA</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 dark:bg-slate-800 rounded">
+                            <p class="text-xs text-gray-500 dark:text-slate-400 uppercase">Deep Sleep</p>
+                            <p class="text-xl font-bold text-green-600 dark:text-green-400">< 20 µA</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600 dark:text-slate-400">
+                        <strong>省電策略：</strong> 利用 Light Sleep + I2S 監聽，當麥克風檢測到振幅超過閾值時才喚醒 CPU 進行完整運算。
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. Production -->
+            <section id="production" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">7</span>
+                    量產製造 (MP Plan)
+                </h2>
+
+                <div class="mb-8">
+                    <h3 class="font-bold text-lg mb-4 text-slate-700 dark:text-slate-200">10k 量產 BOM 成本估算</h3>
+                    <table class="min-w-full text-sm text-left text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-800">
+                        <thead class="text-xs text-gray-700 dark:text-slate-300 uppercase bg-gray-50 dark:bg-slate-800">
+                            <tr>
+                                <th class="px-6 py-3">元件</th>
+                                <th class="px-6 py-3">規格</th>
+                                <th class="px-6 py-3 text-right">單價 (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-white dark:bg-slate-900 border-b dark:border-slate-800">
+                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-slate-200">ESP32-S3-WROOM-1</td>
+                                <td class="px-6 py-4">N16R8 (16MB Flash/8MB PSRAM)</td>
+                                <td class="px-6 py-4 text-right">$3.10</td>
+                            </tr>
+                            <tr class="bg-white dark:bg-slate-900 border-b dark:border-slate-800">
+                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-slate-200">INMP441</td>
+                                <td class="px-6 py-4">MEMS Mic, I2S</td>
+                                <td class="px-6 py-4 text-right">$0.65</td>
+                            </tr>
+                            <tr class="bg-white dark:bg-slate-900 border-b dark:border-slate-800">
+                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-slate-200">MAX98357A</td>
+                                <td class="px-6 py-4">Class-D Amp</td>
+                                <td class="px-6 py-4 text-right">$0.45</td>
+                            </tr>
+                            <tr class="bg-gray-50 dark:bg-slate-800 border-b dark:border-slate-700">
+                                <td class="px-6 py-4 font-bold text-gray-900 dark:text-white" colspan="2">總計 (BOM Cost)</td>
+                                <td class="px-6 py-4 text-right font-bold text-green-600 dark:text-green-400">~$7.20</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-4 text-slate-700 dark:text-slate-200">DFT (Design for Test) 測試站規劃</h3>
+                    <ul class="list-decimal list-inside space-y-2 text-gray-700 dark:text-slate-300">
+                        <li><strong>電氣測試：</strong> 測量電源軌電壓及靜態電流。</li>
+                        <li><strong>韌體燒錄：</strong> 寫入 MAC、序號及 Secure Boot 金鑰。</li>
+                        <li><strong>音訊迴路測試 (Audio Loopback)：</strong> 
+                            <ul class="list-disc list-inside ml-6 text-sm text-gray-600 dark:text-slate-400 mt-1">
+                                <li>治具發出掃頻訊號 (20Hz-20kHz) -> 產品錄音。</li>
+                                <li>產品播放錄音 -> 治具麥克風回收。</li>
+                                <li><strong>判定：</strong> 頻響曲線需在 Golden Sample ±3dB 內。</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 8. Terminology Cheat Sheet (New Section) -->
+            <section id="terminology" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-slate-800 dark:bg-slate-700 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">8</span>
+                    ESP32 語音辨識術語速查表
+                </h2>
+                
+                <!-- 8.1 Core Terms -->
+                <div class="mb-10">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+                        <i class="fas fa-bullseye text-red-500 mr-2"></i> 核心技術四件套 (優先記憶)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-white dark:bg-slate-900 rounded-lg border-l-4 border-red-500 shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-lg text-slate-900 dark:text-white">ASR</span>
+                                <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">辨識核心</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Automatic Speech Recognition<br>自動語音辨識，將語音訊號轉為文字。</p>
+                        </div>
+                        <div class="p-4 bg-white dark:bg-slate-900 rounded-lg border-l-4 border-blue-500 shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-lg text-slate-900 dark:text-white">KWS</span>
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">喚醒</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Keyword Spotting<br>關鍵詞偵測，低功耗檢測喚醒詞 (如 "Hi, ESP")。</p>
+                        </div>
+                        <div class="p-4 bg-white dark:bg-slate-900 rounded-lg border-l-4 border-green-500 shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-lg text-slate-900 dark:text-white">VAD</span>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">偵測</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Voice Activity Detection<br>語音活動檢測，判斷是否有「人聲」存在，過濾靜音。</p>
+                        </div>
+                        <div class="p-4 bg-white dark:bg-slate-900 rounded-lg border-l-4 border-purple-500 shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-lg text-slate-900 dark:text-white">MFCC</span>
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">特徵</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Mel-Frequency Cepstral Coefficients<br>梅爾頻率倒譜係數，模仿人類聽覺提取的音頻特徵。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8.2 Dev Essentials -->
+                <div class="mb-10">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+                        <i class="fas fa-tools text-blue-500 mr-2"></i> ESP32 實戰開發必知
+                    </h3>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-800">
+                        <table class="min-w-full bg-white dark:bg-slate-900 text-sm">
+                            <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                <tr>
+                                    <th class="px-6 py-3 text-left w-1/4">類別</th>
+                                    <th class="px-6 py-3 text-left">重點術語 (Keywords)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-slate-800 text-gray-700 dark:text-slate-300">
+                                <tr>
+                                    <td class="px-6 py-3 font-semibold bg-gray-50 dark:bg-slate-800/50">框架 (Framework)</td>
+                                    <td class="px-6 py-3"><span class="font-mono text-tech-600 dark:text-tech-400">Edge Impulse</span>, <span class="font-mono text-tech-600 dark:text-tech-400">TFLM</span> (TensorFlow Lite Micro), <span class="font-mono text-tech-600 dark:text-tech-400">TinyML</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 font-semibold bg-gray-50 dark:bg-slate-800/50">官方工具 (Official)</td>
+                                    <td class="px-6 py-3"><span class="font-mono text-tech-600 dark:text-tech-400">ESP-SR</span> (Speech Recognition Lib), <span class="font-mono text-tech-600 dark:text-tech-400">MultiNet</span> (Command Recognition)</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 font-semibold bg-gray-50 dark:bg-slate-800/50">模型優化 (Optimization)</td>
+                                    <td class="px-6 py-3">Quantization (量化), Pruning (剪枝), Knowledge Distillation (知識蒸餾)</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 font-semibold bg-gray-50 dark:bg-slate-800/50">硬體接口 (Interface)</td>
+                                    <td class="px-6 py-3">I²S (音頻通信), INMP441 (數位麥克風)</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 font-semibold bg-gray-50 dark:bg-slate-800/50">性能指標 (Metrics)</td>
+                                    <td class="px-6 py-3">WER (詞錯誤率), Latency (延遲 <500ms), RAM (<400KB)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 8.3 Workflow -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+                        <i class="fas fa-project-diagram text-green-500 mr-2"></i> 工作流程序列 (Workflow)
+                    </h3>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
+                        <div class="flex items-center space-x-2 md:space-x-4 min-w-max text-sm">
+                            <div class="flex flex-col items-center">
+                                <span class="bg-white dark:bg-slate-700 px-3 py-2 rounded-md shadow-sm border border-gray-200 dark:border-slate-600 font-medium">數據收集</span>
+                            </div>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                            <div class="flex flex-col items-center">
+                                <span class="bg-white dark:bg-slate-700 px-3 py-2 rounded-md shadow-sm border border-gray-200 dark:border-slate-600 font-medium">特徵提取 (MFCC)</span>
+                            </div>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                            <div class="flex flex-col items-center">
+                                <span class="bg-white dark:bg-slate-700 px-3 py-2 rounded-md shadow-sm border border-gray-200 dark:border-slate-600 font-medium">模型訓練</span>
+                            </div>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                            <div class="flex flex-col items-center">
+                                <span class="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-3 py-2 rounded-md shadow-sm border border-yellow-200 dark:border-yellow-700 font-bold">量化轉換</span>
+                            </div>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                            <div class="flex flex-col items-center">
+                                <span class="bg-white dark:bg-slate-700 px-3 py-2 rounded-md shadow-sm border border-gray-200 dark:border-slate-600 font-medium">部署至 ESP32</span>
+                            </div>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                            <div class="flex flex-col items-center">
+                                <span class="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-3 py-2 rounded-md shadow-sm border border-green-200 dark:border-green-700 font-bold">邊緣推理</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="mt-20 border-t border-gray-200 dark:border-slate-800 pt-8 text-center text-sm text-gray-500 dark:text-slate-500 pb-12">
+                <p>&copy; 2024 Marlon's Engineering Lab. All rights reserved.</p>
+                <p class="mt-2">Documentation generated for GitHub Pages.</p>
+                <div class="mt-4 flex justify-center space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"><i class="fab fa-github text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300"><i class="fab fa-linkedin text-xl"></i></a>
+                </div>
+            </footer>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Theme Toggle Logic ---
+        const html = document.documentElement;
+        const mobileToggle = document.getElementById('mobile-theme-toggle');
+        const desktopToggle = document.getElementById('desktop-theme-toggle');
+        const mobileIcon = mobileToggle.querySelector('i');
+        const desktopIcon = desktopToggle.querySelector('i');
+
+        // Check Local Storage or System Preference
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.classList.add('dark');
+                updateIcons(true);
+            } else {
+                html.classList.remove('dark');
+                updateIcons(false);
+            }
+        }
+
+        // Update Icons based on theme
+        function updateIcons(isDark) {
+            const iconClass = isDark ? 'fa-sun' : 'fa-moon';
+            mobileIcon.className = `fas ${iconClass}`;
+            desktopIcon.className = `fas ${iconClass}`;
+        }
+
+        // Toggle Function
+        function toggleTheme() {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                updateIcons(false);
+            } else {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                updateIcons(true);
+            }
+        }
+
+        mobileToggle.addEventListener('click', toggleTheme);
+        desktopToggle.addEventListener('click', toggleTheme);
+        
+        // Initialize on load
+        initTheme();
+
+        // --- Mobile Menu Logic ---
+        const btn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+
+        btn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // Close sidebar on link click (mobile)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            });
+        });
+
+        // Smooth active state on scroll
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('bg-slate-800', 'text-white');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('bg-slate-800', 'text-white');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
