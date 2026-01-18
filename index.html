@@ -107,7 +107,7 @@
             <p class="text-xs mt-2 text-slate-400">Offline Speech Recognition</p>
             <div class="mt-4 flex items-center space-x-2">
                 <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="text-xs font-mono text-green-400">STATUS: PROTOTYPE v2.1</span>
+                <span class="text-xs font-mono text-green-400">STATUS: PROTOTYPE v2.2</span>
             </div>
         </div>
         
@@ -125,6 +125,7 @@
             <a href="#acquisition-deep-dive" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-purple-400"><i class="fas fa-satellite-dish w-6 text-center"></i> 數據採集核心詳解 (Deep Dive)</a>
             <a href="#edge-impulse" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-blue-400"><i class="fas fa-brain w-6 text-center"></i> Edge Impulse 訓練指南</a>
             <a href="#deployment" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-red-400"><i class="fas fa-rocket w-6 text-center"></i> 部署與硬體運行 (Deployment)</a>
+            <a href="#system-verification" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-orange-400"><i class="fas fa-stethoscope w-6 text-center"></i> 系統驗證與除錯 (Debug MSG)</a>
         </nav>
 
         <div class="p-4 border-t border-slate-700">
@@ -150,7 +151,7 @@
             
             <!-- Header Section -->
             <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
-                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v2.1</div>
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v2.2</div>
                 <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
                     Project: EdgeVox<br>
                     <span class="text-tech-600 dark:text-tech-400">ESP32-S3 離線語音識別深度報告</span>
@@ -340,6 +341,18 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Design Rules -->
+                <div class="space-y-4">
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4">
+                        <h4 class="font-bold text-yellow-800 dark:text-yellow-200 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>PCB 關鍵準則</h4>
+                        <ul class="list-disc list-inside text-sm text-yellow-800 dark:text-yellow-100/80 space-y-1">
+                            <li><strong>電源樹 (Power Tree)：</strong> MAX98357A 建議使用 5V (VBUS) 供電以保證功率。INMP441 需透過 LC 濾波器隔離數位雜訊。</li>
+                            <li><strong>星型接地 (Star Grounding)：</strong> 類比地與功率地應在電源入口單點連接，避免數位迴路干擾。</li>
+                            <li><strong>天線淨空區：</strong> ESP32-S3 天線周圍 15mm 嚴禁鋪銅，麥克風應遠離天線以防 TDMA 噪音 (217Hz)。</li>
+                        </ul>
+                    </div>
                 </div>
             </section>
 
@@ -803,6 +816,74 @@
 <span class="token-preproc">#endif</span>
 }
                         </code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 13. System Verification (NEW) -->
+            <section id="system-verification" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-orange-500 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">13</span>
+                    系統驗證與除錯訊息 (System Verification & Debug MSG)
+                </h2>
+                
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-stethoscope text-orange-500 mr-2"></i> 驗證與測試清單
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        完成硬體組裝後，請務必開啟 Arduino IDE Serial Monitor (115200 baud) 並對照以下訊息進行驗證。
+                    </p>
+
+                    <!-- Verification 1 -->
+                    <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <h4 class="font-bold text-green-600 dark:text-green-400 mb-2">1. I2S 麥克風驗證 (INMP441)</h4>
+                        <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                            <li><strong>操作：</strong> 上傳採集代碼，打開 Serial Monitor。</li>
+                            <li><strong>預期訊息：</strong> <code>✓ I2S initialized</code></li>
+                            <li><strong>音頻測試：</strong> 在麥克風前說話。</li>
+                            <li><strong>Debug MSG：</strong></li>
+                        </ul>
+                        <pre class="mt-2 bg-black text-green-400 p-2 rounded text-xs font-mono">
+I2S initialized
+Ready for data collection...
+Audio level: 45    (靜默時，數值低且穩定)
+Audio level: 1234  (說話時，數值劇烈跳動)
+Audio level: 890   (持續說話)
+                        </pre>
+                        <p class="text-xs text-red-500 mt-2">若數值一直是 0 或卡在固定值，檢查 WS/SCK/SD 接線。</p>
+                    </div>
+
+                    <!-- Verification 2 -->
+                    <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <h4 class="font-bold text-blue-600 dark:text-blue-400 mb-2">2. 顯示器驗證 (OLED/LCD)</h4>
+                        <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                            <li><strong>操作：</strong> 上傳雙模驅動代碼。</li>
+                            <li><strong>預期行為：</strong> 螢幕顯示 "EdgeVox Init..."。</li>
+                            <li><strong>Debug MSG (Serial Monitor)：</strong></li>
+                        </ul>
+                        <pre class="mt-2 bg-black text-blue-400 p-2 rounded text-xs font-mono">
+EdgeVox Init...
+Display initialized successfully
+                        </pre>
+                        <p class="text-xs text-red-500 mt-2">若顯示 "OLED Init Failed"，檢查 I2C 地址 (0x3C) 或 SPI 接線。</p>
+                    </div>
+
+                    <!-- Verification 3 -->
+                    <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <h4 class="font-bold text-purple-600 dark:text-purple-400 mb-2">3. 推理完整週期驗證</h4>
+                        <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                            <li><strong>操作：</strong> 說出命令詞 "ON"。</li>
+                            <li><strong>Debug MSG (Serial Monitor)：</strong></li>
+                        </ul>
+                        <pre class="mt-2 bg-black text-purple-400 p-2 rounded text-xs font-mono">
+Starting inference...
+Predictions (DSP: 15 ms, Classification: 35 ms):
+    ON: 0.95
+    OFF: 0.02
+    NOISE: 0.03
+Recognized: ON
+                        </pre>
                     </div>
                 </div>
             </section>
