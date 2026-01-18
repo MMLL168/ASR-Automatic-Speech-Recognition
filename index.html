@@ -123,6 +123,7 @@
             <a href="#implementation" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-green-400"><i class="fas fa-laptop-code w-6 text-center"></i> 實作開發指南</a>
             <a href="#acquisition-deep-dive" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-purple-400"><i class="fas fa-satellite-dish w-6 text-center"></i> 數據採集核心詳解 (Deep Dive)</a>
             <a href="#edge-impulse" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-blue-400"><i class="fas fa-brain w-6 text-center"></i> Edge Impulse 訓練指南</a>
+            <a href="#deployment" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-red-400"><i class="fas fa-rocket w-6 text-center"></i> 部署與硬體運行 (Deployment)</a>
         </nav>
 
         <div class="p-4 border-t border-slate-700">
@@ -148,13 +149,13 @@
             
             <!-- Header Section -->
             <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
-                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v1.4</div>
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v1.5</div>
                 <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
                     基於 ESP32-S3 之離線語音識別產品：<br>
                     <span class="text-tech-600 dark:text-tech-400">從研發到量產的深度技術報告</span>
                 </h1>
                 <p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                    本報告詳述了基於 Espressif ESP32-S3、INMP441、MAX98357A 與 OLED 構建的高性能離線語音交互系統。涵蓋硬體選型、PCB Layout、聲學設計、數據採集原理及 <span class="text-blue-500 font-semibold">Edge Impulse 深度訓練指南</span>。
+                    本報告詳述了基於 Espressif ESP32-S3、INMP441、MAX98357A 與 OLED 構建的高性能離線語音交互系統。涵蓋硬體選型、PCB Layout、聲學設計、數據採集原理、AI 訓練及<span class="text-red-500 font-semibold">最終硬體部署</span>。
                 </p>
             </header>
 
@@ -955,6 +956,97 @@ NOISE   0     0     <span class="text-green-600 font-bold">50</span>    <- 完�
                     </ol>
                 </div>
 
+            </section>
+
+            <!-- 12. Deployment (New Section) -->
+            <section id="deployment" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-red-500 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">12</span>
+                    部署與硬體運行 (Hardware Deployment)
+                </h2>
+                
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-file-export text-red-500 mr-2"></i> 1. 下載與安裝 Arduino 庫
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        模型訓練完成後，我們需要將其打包成 Arduino 庫。
+                    </p>
+                    <ol class="list-decimal list-inside space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                        <li>在 Edge Impulse 左側選單點擊 <strong>Deployment</strong>。</li>
+                        <li>搜尋並選擇 <strong>Arduino Library</strong>。</li>
+                        <li>點擊下方的 <strong>Build</strong> 按鈕。</li>
+                        <li>下載生成的 ZIP 檔案 (例如: <code>esp32-project-v1.zip</code>)。</li>
+                        <li>打開 Arduino IDE，選單：<strong>Sketch -> Include Library -> Add .ZIP Library...</strong>，選擇剛下載的 ZIP。</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-code-branch text-red-500 mr-2"></i> 2. 關鍵代碼修改 (GPIO Remap)
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Edge Impulse 的範例代碼預設使用 ESP32 的標準 I2S 引腳，但我們使用的是 ESP32-S3 自定義引腳，<strong>必須修改</strong>才能收到聲音。
+                    </p>
+                    <div class="bg-slate-50 dark:bg-black p-4 rounded font-mono text-xs overflow-x-auto border border-slate-200 dark:border-slate-700">
+                        <p class="text-gray-500 mb-2">// 打開範例: File -> Examples -> <你的專案名> -> esp32 -> esp32_microphone</p>
+                        <p class="text-gray-500 mb-2">// 搜尋並修改以下幾行:</p>
+                        <pre class="text-slate-600 dark:text-slate-400">
+// 原始代碼 (可能長這樣)
+// #define I2S_WS   32
+// #define I2S_SCK  26
+// #define I2S_SD   33
+
+// <span class="text-red-600 font-bold">必須改為 (針對你的硬體):</span>
+#define I2S_WS   42    // LRCK -> INMP441 WS
+#define I2S_SCK  41    // SCLK -> INMP441 SCK
+#define I2S_SD   40    // DOUT -> INMP441 SD
+                        </pre>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">
+                        <i class="fas fa-bug text-red-500 mr-2"></i> 3. 常見編譯錯誤與修復
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-red-400 pl-4 py-1">
+                            <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">錯誤 1: I2S_NUM_0 was not declared</h4>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">原因：缺少 I2S 驅動庫引用。</p>
+                            <p class="text-xs text-green-600 dark:text-green-400 font-mono mt-1">解法：在文件頂部加入 #include &lt;driver/i2s.h&gt;</p>
+                        </div>
+                        <div class="border-l-4 border-red-400 pl-4 py-1">
+                            <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">錯誤 2: Sketch too large</h4>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">原因：模型太大，Flash 空間不足。</p>
+                            <p class="text-xs text-green-600 dark:text-green-400 font-mono mt-1">解法：Tools -> Partition Scheme -> 選擇 "Huge APP (3MB No OTA)"</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-50 dark:bg-green-900/10 p-6 rounded-xl border border-green-100 dark:border-green-900/30">
+                    <h3 class="text-xl font-bold text-green-800 dark:text-green-300 mb-4">
+                        <i class="fas fa-check-circle mr-2"></i> 4. 成功驗證：讀取 Serial Monitor
+                    </h3>
+                    <p class="text-sm text-green-700 dark:text-green-200 mb-4">
+                        燒錄成功後，打開 Serial Monitor (波特率 115200)。你應該看到類似下方的輸出：
+                    </p>
+                    <div class="bg-black p-4 rounded font-mono text-xs overflow-x-auto text-green-400">
+                        <pre>
+Edge Impulse Inferencing Demo
+Init I2S...
+I2S initialized
+Starting inferencing in 2 seconds...
+Recording...
+Predictions (DSP: 18 ms., Classification: 2 ms., Anomaly: 0 ms.):
+    ON:     0.98
+    OFF:    0.01
+    NOISE:  0.01
+                        </pre>
+                    </div>
+                    <p class="text-sm text-green-700 dark:text-green-200 mt-4">
+                        若看到 "ON: 0.98" 且數字隨你的聲音變化，恭喜！你已成功部署了離線語音識別模型！
+                    </p>
+                </div>
             </section>
 
             <!-- Footer -->
