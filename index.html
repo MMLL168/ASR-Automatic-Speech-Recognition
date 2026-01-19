@@ -112,7 +112,7 @@
             <p class="text-xs mt-2 text-slate-400">Offline Speech Recognition</p>
             <div class="mt-4 flex items-center space-x-2">
                 <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="text-xs font-mono text-green-400">STATUS: FULL RESTORE v3.1</span>
+                <span class="text-xs font-mono text-green-400">STATUS: FULL RESTORE v3.2</span>
             </div>
         </div>
         
@@ -137,7 +137,7 @@
             <a href="#edge-impulse" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-blue-400"><i class="fas fa-brain w-6 text-center"></i> Edge Impulse 訓練指南</a>
             <a href="#deployment" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-red-400"><i class="fas fa-rocket w-6 text-center"></i> 部署與運行 (含代碼)</a>
             <a href="#system-verification" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-orange-400"><i class="fas fa-stethoscope w-6 text-center"></i> 驗證與除錯 (Debug MSG)</a>
-            <a href="#hardware-analysis" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-cyan-400"><i class="fas fa-chart-pie w-6 text-center"></i> 開發板算力分析</a>
+            <a href="#hardware-analysis" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-cyan-400"><i class="fas fa-chart-pie w-6 text-center"></i> 開發板算力分析 (雙平台)</a>
         </nav>
 
         <div class="p-4 border-t border-slate-700">
@@ -163,13 +163,13 @@
             
             <!-- Header Section -->
             <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
-                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v3.1 (FULL)</div>
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v3.2 (FULL)</div>
                 <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
                     Project: EdgeVox<br>
                     <span class="text-tech-600 dark:text-tech-400">雙平台邊緣 AI 系統深度報告 (全量版)</span>
                 </h1>
                 <p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                    本報告詳述了基於 <strong>ESP32-S3</strong> (語音控制) 與 <strong>Ameba Mini</strong> (影像 AI) 構建的完整邊緣運算生態系。完整收錄數據採集代碼、部署代碼、硬體接線圖及詳細操作清單。
+                    本報告詳述了基於 <strong>ESP32-S3</strong> (語音控制) 與 <strong>Ameba Mini</strong> (影像 AI) 構建的完整邊緣運算生態系。完整收錄數據採集代碼、部署代碼、硬體接線圖及算力分析。
                 </p>
             </header>
 
@@ -1189,28 +1189,51 @@ Recognized: ON
                 </div>
             </section>
 
-            <!-- 14. Hardware Analysis -->
+            <!-- 14. Hardware Analysis (Dual) -->
             <section id="hardware-analysis" class="mb-16 scroll-mt-24">
                 <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
                     <span class="bg-cyan-600 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">14</span>
-                    開發板算力與記憶體分析
+                    開發板算力與記憶體分析 (雙平台)
                 </h2>
                 
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-md">
-                    <h3 class="text-xl font-bold text-cyan-700 dark:text-cyan-400 mb-4">
-                        <i class="fas fa-microchip mr-2"></i> GOOUUU ESP32-S3-CAM 規格
-                    </h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-2">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Flash (Quad SPI)</span>
-                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200">8 MB (or 16 MB)</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ESP32 Card -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-md">
+                        <h3 class="text-xl font-bold text-cyan-700 dark:text-cyan-400 mb-4">
+                            <i class="fas fa-microchip mr-2"></i> ESP32-S3-CAM 規格
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Flash (Quad SPI)</span>
+                                <span class="text-sm font-bold text-slate-800 dark:text-slate-200">8 MB (or 16 MB)</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">PSRAM (Octal SPI)</span>
+                                <span class="text-sm font-bold text-slate-800 dark:text-slate-200">8 MB</span>
+                            </div>
+                            <div class="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-700 dark:text-green-300">
+                                <i class="fas fa-check-circle mr-1"></i> <strong>結論：</strong> 8MB PSRAM 完美支援語音緩衝與 LCD 雙顯。
+                            </div>
                         </div>
-                        <div class="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-2">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">PSRAM (Octal SPI)</span>
-                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200">8 MB</span>
-                        </div>
-                        <div class="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-700 dark:text-green-300">
-                            <i class="fas fa-check-circle mr-1"></i> <strong>結論：</strong> 8MB Flash 足以存放多個 AI 模型，8MB PSRAM 完美支援大型 LCD 緩衝與圖像處理。
+                    </div>
+
+                    <!-- Ameba Card (NEW) -->
+                    <div class="bg-purple-50 dark:bg-purple-900/10 p-6 rounded-xl border border-purple-200 dark:border-purple-800 shadow-md">
+                        <h3 class="text-xl font-bold text-purple-700 dark:text-purple-400 mb-4">
+                            <i class="fas fa-video mr-2"></i> Ameba Mini (RTL8735B) 規格
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center border-b border-purple-100 dark:border-purple-800/30 pb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">RAM (DDR2)</span>
+                                <span class="text-sm font-bold text-slate-800 dark:text-slate-200">128 MB</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-purple-100 dark:border-purple-800/30 pb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">AI Accelerator</span>
+                                <span class="text-sm font-bold text-slate-800 dark:text-slate-200">NPU (0.4 TOPS)</span>
+                            </div>
+                            <div class="mt-4 p-3 bg-purple-100 dark:bg-purple-900/30 rounded text-xs text-purple-800 dark:text-purple-200">
+                                <i class="fas fa-bolt mr-1"></i> <strong>結論：</strong> 128MB 記憶體 + NPU 是運行 YOLO 等大型視覺模型的關鍵優勢，遠超 ESP32。
+                            </div>
                         </div>
                     </div>
                 </div>
