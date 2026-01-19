@@ -112,7 +112,7 @@
             <p class="text-xs mt-2 text-slate-400">Offline Speech Recognition</p>
             <div class="mt-4 flex items-center space-x-2">
                 <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="text-xs font-mono text-green-400">STATUS: FULL RESTORE v3.2</span>
+                <span class="text-xs font-mono text-green-400">STATUS: FULL RESTORE v3.3</span>
             </div>
         </div>
         
@@ -132,7 +132,8 @@
             <a href="#comparison" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-purple-400"><i class="fas fa-balance-scale w-6 text-center"></i> 雙平台對比與選型</a>
 
             <div class="pt-4 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">實作與部署 (完整版)</div>
-            <a href="#implementation" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-green-400"><i class="fas fa-laptop-code w-6 text-center"></i> 實作開發指南</a>
+            <a href="#goouuu-hands-on" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-green-400 border-l-4 border-green-500 bg-green-50/10"><i class="fas fa-tools w-6 text-center"></i> 動手實作: Goouuu N16R8 (New)</a>
+            <a href="#implementation" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-gray-400"><i class="fas fa-laptop-code w-6 text-center"></i> 實作開發指南 (通用)</a>
             <a href="#acquisition-deep-dive" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-purple-400"><i class="fas fa-satellite-dish w-6 text-center"></i> 數據採集詳解 (含代碼)</a>
             <a href="#edge-impulse" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-blue-400"><i class="fas fa-brain w-6 text-center"></i> Edge Impulse 訓練指南</a>
             <a href="#deployment" class="nav-link block px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors text-sm font-medium text-red-400"><i class="fas fa-rocket w-6 text-center"></i> 部署與運行 (含代碼)</a>
@@ -163,7 +164,7 @@
             
             <!-- Header Section -->
             <header class="mb-12 border-b border-gray-200 dark:border-slate-800 pb-8">
-                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v3.2 (FULL)</div>
+                <div class="inline-block bg-tech-100 text-tech-800 dark:bg-tech-900 dark:text-tech-100 px-3 py-1 rounded-full text-xs font-bold mb-4">ENGINEERING REPORT v3.3 (FULL)</div>
                 <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
                     Project: EdgeVox<br>
                     <span class="text-tech-600 dark:text-tech-400">雙平台邊緣 AI 系統深度報告 (全量版)</span>
@@ -659,6 +660,174 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- 9.1 Hands-on: Goouuu N16R8 (NEW SECTION) -->
+            <section id="goouuu-hands-on" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center">
+                    <span class="bg-green-600 text-white w-8 h-8 rounded flex items-center justify-center text-sm mr-3">9.1</span>
+                    動手實作：Goouuu ESP32-S3 N16R8 專屬指南 (New)
+                </h2>
+                <div class="bg-green-50 dark:bg-green-900/10 p-6 rounded-xl border border-green-200 dark:border-green-800 mb-8">
+                    <h3 class="text-xl font-bold text-green-800 dark:text-green-300 mb-4 border-b border-green-200 dark:border-green-800 pb-2">
+                        <i class="fas fa-hammer mr-2"></i> 開發板與周邊接線 (Specific for Goouuu)
+                    </h3>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                        本節專為 Goouuu ESP32-S3 N16R8 + INMP441 + I2C LCD1602 的組合設計。
+                    </p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-sm text-green-700 dark:text-green-400 mb-2">麥克風接線 (INMP441)</h4>
+                            <table class="w-full text-sm bg-white dark:bg-slate-900 rounded">
+                                <thead class="bg-gray-100 dark:bg-slate-800">
+                                    <tr><th class="p-2 text-left">INMP441</th><th class="p-2 text-left">ESP32 GPIO</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td class="p-2">SCK</td><td class="p-2 font-mono">GPIO 5</td></tr>
+                                    <tr><td class="p-2">WS</td><td class="p-2 font-mono">GPIO 4</td></tr>
+                                    <tr><td class="p-2">SD</td><td class="p-2 font-mono">GPIO 6</td></tr>
+                                    <tr><td class="p-2">L/R</td><td class="p-2">GND</td></tr>
+                                    <tr><td class="p-2">VDD</td><td class="p-2">3.3V</td></tr>
+                                    <tr><td class="p-2">GND</td><td class="p-2">GND</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-blue-700 dark:text-blue-400 mb-2">LCD 接線 (I2C 1602)</h4>
+                            <table class="w-full text-sm bg-white dark:bg-slate-900 rounded">
+                                <thead class="bg-gray-100 dark:bg-slate-800">
+                                    <tr><th class="p-2 text-left">LCD (PCF8574)</th><th class="p-2 text-left">ESP32 GPIO</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td class="p-2">SDA</td><td class="p-2 font-mono">GPIO 41</td></tr>
+                                    <tr><td class="p-2">SCL</td><td class="p-2 font-mono">GPIO 42</td></tr>
+                                    <tr><td class="p-2">VCC</td><td class="p-2">5V (VIN)</td></tr>
+                                    <tr><td class="p-2">GND</td><td class="p-2">GND</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
+                        <i class="fas fa-code mr-2"></i> 測試代碼 1: I2S 麥克風測試 (I2S_Mic_Test.ino)
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">上傳後打開 Serial Plotter 觀察波形。</p>
+                    <pre class="code-block"><code class="language-cpp">#include &lt;driver/i2s.h&gt;
+
+#define I2S_WS 4
+#define I2S_SD 6
+#define I2S_SCK 5
+#define I2S_PORT I2S_NUM_0
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  i2s_config_t i2s_config = {
+    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
+    .sample_rate = 16000, // 或 44100
+    .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
+    .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+    .communication_format = I2S_COMM_FORMAT_STAND_I2S,
+    .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
+    .dma_buf_count = 4,
+    .dma_buf_len = 1024,
+    .use_apll = false,
+    .tx_desc_auto_clear = false,
+    .fixed_mclk = 0
+  };
+
+  i2s_pin_config_t pin_config = {
+    .bck_io_num = I2S_SCK,
+    .ws_io_num = I2S_WS,
+    .data_out_num = -1,
+    .data_in_num = I2S_SD
+  };
+
+  if (i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL) != ESP_OK) {
+    Serial.println("I2S driver install failed");
+    return;
+  }
+  if (i2s_set_pin(I2S_PORT, &pin_config) != ESP_OK) {
+    Serial.println("I2S pins set failed");
+    return;
+  }
+  Serial.println("I2S initialized");
+}
+
+void loop() {
+  int32_t sample = 0;
+  size_t bytes_read = 0;
+  i2s_read(I2S_PORT, &sample, sizeof(sample), &bytes_read, portMAX_DELAY);
+  
+  if (bytes_read > 0) {
+    // 簡單的波形輸出，可用 Serial Plotter 觀察
+    Serial.println(sample);
+  }
+}
+</code></pre>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
+                        <i class="fas fa-code mr-2"></i> 測試代碼 2: I2C LCD 測試 (I2C_LCD_Test.ino)
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">需要安裝 `LiquidCrystal_I2C` 庫。若無顯示，請檢查 I2C 地址。</p>
+                    <pre class="code-block"><code class="language-cpp">#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+
+// I2C pins for Goouuu ESP32-S3
+#define SDA_PIN 41
+#define SCL_PIN 42
+
+// Address usually 0x27 or 0x3F
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Custom I2C pins
+  Wire.begin(SDA_PIN, SCL_PIN);
+  
+  lcd.init();
+  lcd.backlight();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("ESP32-S3 Ready!");
+  lcd.setCursor(0, 1);
+  lcd.print("Mic: INMP441");
+  
+  Serial.println("LCD Initialized");
+}
+
+void loop() {
+  // Blink text
+  lcd.setCursor(15, 0);
+  lcd.print(".");
+  delay(500);
+  lcd.setCursor(15, 0);
+  lcd.print(" ");
+  delay(500);
+}
+</code></pre>
+                </div>
+                
+                <div class="bg-red-50 dark:bg-red-900/10 p-5 rounded-lg border border-red-100 dark:border-red-900/30">
+                    <h4 class="font-bold text-red-800 dark:text-red-300 mb-3"><i class="fas fa-bug mr-2"></i>Goouuu 開發板常見問題</h4>
+                    <ul class="space-y-3 text-sm text-red-700 dark:text-red-200/80">
+                        <li>
+                            <span class="font-bold block">Q: I2C LCD 不亮或顯示亂碼？</span>
+                            <span class="text-xs">A: 1. 檢查背光跳線帽是否插上。2. 旋轉藍色電位器調整對比度。3. 運行 I2C Scanner 確認地址 (可能是 0x3F 而非 0x27)。</span>
+                        </li>
+                        <li>
+                            <span class="font-bold block">Q: 麥克風數值全是 0 或噪音？</span>
+                            <span class="text-xs">A: 1. GPIO 4/5/6 容易與某些開發板的 Flash 衝突（雖然 N16R8 用的是高位地址，但仍需注意）。2. 確保 INMP441 的 L/R 腳接地。3. 檢查 3.3V 供電是否穩定。</span>
+                        </li>
+                    </ul>
                 </div>
             </section>
 
