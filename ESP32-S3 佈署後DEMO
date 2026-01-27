@@ -1,13 +1,14 @@
 /*
- * ESP32-S3 AI Monitor (Final Production - Tuned Logic)
+ * ESP32-S3 AI Monitor (Final Production - Gentle Siren)
  * Model: Float32 (Unoptimized)
  * Status: Calibrated for Marlon's Fan Data
  *
  * 核心設定:
  * 1. Audio: Gain 5.0 / Divisor 256.0 (模擬 Data Forwarder 行為)
- * 2. Logic: 
- * - Error 觸發門檻: 0.85 (過濾掉平時 0.4~0.5 的浮動)
- * - Fan 認定門檻: 0.40 (接受 0.5 左右的信心度為正常)
+ * 2. Logic: Error=0.85 / Fan=0.40
+ * 3. Sound: 
+ * - Error: 急促警報 (Siren) 頻率切換，但音量溫和 (0.05)。
+ * - 修復聲音斷續問題。
  */
 
 // ★ 請確認 Library 名稱是否正確
@@ -23,24 +24,21 @@
 
 // ===== 參數設定 =====
 #define EI_SAMPLE_RATE       16000 
-#define BEEP_VOLUME          0.05 
+#define BEEP_VOLUME          0.05  // 統一音量 (溫和不刺耳)
 #define MIC_GAIN             5.0   
 #define AUDIO_DIVISOR        256.0f // ★ 關鍵: 維持 Data Forwarder 的比例
 
 // 🛠 系統設定
 #define TFT_SPI_SPEED        80000000 
-#define DIAGNOSTIC_MODE      false    // 正式版關閉除錯文字
+#define DIAGNOSTIC_MODE      false    
 
-// 🔥 AI 門檻調校 (根據你的實測數據)
-// 異常時會衝到 0.9 以上，所以設 0.85 很安全
+// 🔥 AI 門檻調校
 #define THRESHOLD_ERROR      0.85     
-// 正常時 Fan 約 0.4~0.6，所以設 0.40 讓它容易被認定為正常
 #define THRESHOLD_FAN        0.40     
-// 背景音通常很明確
 #define THRESHOLD_BACKG      0.70     
 
 // 次數設定 (去抖動)
-#define DEBOUNCE_ERROR       2    // 連續 2 次 Error 才報警 (防誤判)
+#define DEBOUNCE_ERROR       2    
 #define DEBOUNCE_FAN         2
 #define DEBOUNCE_BACKG       2    
 
@@ -120,6 +118,7 @@ void updateSensors();
 bool initMic();
 bool initSpk();
 void playBeep(int freq, int ms);
+void playSilence(int ms); // 新增靜音函式
 void playAlarmSound();
 void playFanOnSound();
 void playFanOffSound();
@@ -203,12 +202,9 @@ void loop() {
   Serial.printf("Fan:%.2f\tBackground:%.2f\tError:%.2f\tTemp:%.1f\tHumi:%.1f\n", 
                 sys.score_fan, sys.score_background, sys.score_error, sys.temp, sys.hum);
 
-  // 3. 🔥【邏輯判定優化】🔥
-  // 策略：優先檢查 Error (門檻高)，其次 Background，最後沒事就當 Fan (門檻低)
-
+  // 3. 邏輯判定
   bool is_error = (sys.score_error >= THRESHOLD_ERROR);
   bool is_background = (sys.score_background >= THRESHOLD_BACKG);
-  // Fan 的判定放寬：只要不是 Error 且 Fan 分數 > 0.4 就算
   bool is_fan = (!is_error && sys.score_fan >= THRESHOLD_FAN);
 
   if (is_error) {
@@ -218,16 +214,12 @@ void loop() {
     background_consecutive_count++;
     fan_consecutive_count = 0; error_consecutive_count = 0;
   } else if (is_fan) {
-    // 如果 Fan 分數稍低(0.5) 但沒觸發 Error，我們就認定是 Fan
     fan_consecutive_count++;
     error_consecutive_count = 0; background_consecutive_count = 0;
   } else {
-    // 模糊地帶 (例如 Fan=0.3, Err=0.3, Back=0.4)，保持上一個狀態或歸零
-    // 這裡選擇歸零重計，避免誤判
     fan_consecutive_count = 0; error_consecutive_count = 0; background_consecutive_count = 0;
   }
 
-  // 觸發狀態
   bool trigger_error = (error_consecutive_count >= DEBOUNCE_ERROR);
   bool trigger_fan = (fan_consecutive_count >= DEBOUNCE_FAN);
   bool trigger_background = (background_consecutive_count >= DEBOUNCE_BACKG);
@@ -246,9 +238,12 @@ void loop() {
   // 4. 執行動作
   if (sys.currentState != sys.lastState) {
     handleStateChange(sys.currentState);
+    
+    // 🔥 播放音效
     if(sys.currentState == STATE_ERROR) playAlarmSound();
     else if(sys.currentState == STATE_FAN_ON) playFanOnSound();
     else if(sys.currentState == STATE_BACKGROUND) playFanOffSound();
+    
     sys.lastState = sys.currentState;
   }
 
@@ -289,7 +284,74 @@ void record_audio_for_ai(float *out_buf) {
 }
 
 // ===================================
-// UI & Drivers
+// 音效驅動 (Sound Drivers) - 修復版
+// ===================================
+
+// 產生靜音 (溫和收尾)
+void playSilence(int ms) {
+  if(!audio_out_buffer) return;
+  int samples = (EI_SAMPLE_RATE * ms) / 1000;
+  memset(audio_out_buffer, 0, 512 * 4); // 填入 0
+  
+  int written_total = 0;
+  while(written_total < samples) {
+    int chunk = min(512, samples - written_total);
+    size_t w;
+    i2s_write(I2S_SPK_PORT, audio_out_buffer, chunk * 4, &w, portMAX_DELAY);
+    written_total += chunk;
+  }
+}
+
+// 標準嗶聲 (移除 zero_dma 以防止斷音)
+void playBeep(int freq, int ms) {
+  if(!audio_out_buffer) return;
+  int samples = (EI_SAMPLE_RATE * ms) / 1000;
+  int written_total = 0;
+  
+  while(written_total < samples) {
+    int chunk = min(512, samples - written_total);
+    for(int i = 0; i < chunk; i++) {
+      float t = (float)(written_total + i) / EI_SAMPLE_RATE;
+      int16_t s = (int16_t)(sin(2 * PI * freq * t) * 32767 * BEEP_VOLUME);
+      audio_out_buffer[i * 2] = s;       
+      audio_out_buffer[i * 2 + 1] = s;   
+    }
+    size_t w;
+    i2s_write(I2S_SPK_PORT, audio_out_buffer, chunk * 4, &w, portMAX_DELAY);
+    written_total += chunk;
+  }
+  // 注意：這裡移除了 i2s_zero_dma_buffer
+}
+
+// 🔥 特效: 溫和版警報 (Siren)
+// 音量跟普通一樣，但頻率會急促切換，持續 3 秒
+void playAlarmSound() { 
+    if(!sys.spkOK) return; 
+    
+    // 循環 25 次 * (60ms + 60ms) = 3000ms (3秒)
+    for(int i=0; i<25; i++) { 
+        playBeep(2000, 60); // 高音 2000Hz
+        playBeep(1000, 60); // 低音 1000Hz
+    }
+    playSilence(100); // 收尾
+}
+
+void playFanOnSound() { 
+    if(sys.spkOK) { 
+        playBeep(523, 100); playBeep(659, 100); playBeep(784, 100); playBeep(1046, 200); 
+        playSilence(50);
+    } 
+}
+
+void playFanOffSound() { 
+    if(sys.spkOK) { 
+        playBeep(784, 150); playBeep(659, 150); playBeep(523, 300); 
+        playSilence(50);
+    } 
+}
+
+// ===================================
+// UI & Drivers (維持不變)
 // ===================================
 void handleStateChange(DetectionState state) {
   String statusText = "";
@@ -357,25 +419,6 @@ void updateNumbers() {
 
 void setRGB(bool r, bool g, bool b) { digitalWrite(PIN_RED, r); digitalWrite(PIN_GREEN, g); digitalWrite(PIN_BLUE, b); }
 void updateSensors() { float h = dht.readHumidity(); float t = dht.readTemperature(); if (!isnan(h) && !isnan(t)) { sys.hum = h; sys.temp = t; } }
-void playAlarmSound() { if(!sys.spkOK) return; for(int i=0; i<3; i++) { playBeep(1200, 100); playBeep(800, 100); } }
-void playFanOnSound() { if(sys.spkOK) { playBeep(523, 100); playBeep(659, 100); playBeep(784, 100); playBeep(1046, 200); } }
-void playFanOffSound() { if(sys.spkOK) { playBeep(784, 150); playBeep(659, 150); playBeep(523, 300); } }
-void playBeep(int freq, int ms) {
-  if(!audio_out_buffer) return;
-  int samples = (EI_SAMPLE_RATE * ms) / 1000;
-  int written_total = 0;
-  while(written_total < samples) {
-    int chunk = min(512, samples - written_total);
-    for(int i = 0; i < chunk; i++) {
-      float t = (float)(written_total + i) / EI_SAMPLE_RATE;
-      int16_t s = (int16_t)(sin(2 * PI * freq * t) * 32767 * BEEP_VOLUME);
-      audio_out_buffer[i * 2] = s; audio_out_buffer[i * 2 + 1] = s;
-    }
-    size_t w; i2s_write(I2S_SPK_PORT, audio_out_buffer, chunk * 4, &w, portMAX_DELAY);
-    written_total += chunk;
-  }
-  i2s_zero_dma_buffer(I2S_SPK_PORT);
-}
 bool initMic() {
   i2s_config_t cfg = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX), .sample_rate = EI_SAMPLE_RATE,
